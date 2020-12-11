@@ -1,67 +1,78 @@
 const express = require('express');
-const router  = express.Router();
-
-//Importar cosas importantes
+const router = express.Router();
+//import las cosas importantes
 const bcrypt = require("bcrypt");
-const User   = require("../models/User");
-const jwt    = require("jsonwebtoken");
-const {clearRes} = require ("../utils/auth");
+const User = require("../models/User");
+const jwt = require("jsonwebtoken");
+const {clearRes} = require("../utils/auth")
 
-/**POST signup*/
-router.post('/signup',(req, res, next) => {
-  //Trabajar todo el código aquí
-  const{email,password,confirmPassword,name} =req.body;
+/*POST Signup */
+router.post('/signup', (req, res, next) => {
+  //trabajare todo mi codigo aqui 
+  const {email,password,confirmPassword,name} = req.body;
+ 
+  if(password !== confirmPassword) return  res.status(403).json({msg:"Las contraseñas no coinciden"})
 
-  if (password !== confirmPassword) return res.status(403).json({msg:"La contraseña no coincide"})
-  
   bcrypt.hash(password,10).then((hashedPassword)=>{
-    const user = {email,password:hashedPassword,name};
-    //Mandar a mongo
+
+    const  user = {email,password:hashedPassword,name};
+
     User.create(user).then(()=>{
-      res.status(200).json({msg:"Usuario creado con éxito"})
+      res.status(200).json({msg:"Usuario creadp con éxito"});
     }).catch((error)=>{
-      res.status(400).json({msg:"Hubo un error",error})
+      res.status(400).json({msg:"hubo un error",error});
     })
+
   })
+
 });
 
-//POST login
-router.post('/login',(req, res, next) => {
-  //Trabajar todo el código aquí
+/*POST login */
+router.post('/login', (req, res, next) => {
+  //trabajare todo mi codigo aqui 
   const {email,password} = req.body;
+                //email:email
   User.findOne({email})
-  
-  .then((user)=>{
-    if(user === null) return res.status(404).json({msg:"No existe correo"})
-    bcrypt.compare(password,user.password).then((match)=>{
-      
-      //Borrar password para usuario =>
-      if(match){
-        //const  withoutPass = user.toObject();
-        //delete withoutPass.password
-        const newUser = clearRes(user.toObject())
-        //esto nos genera un token mezclando un valor (id) más la palabara secreta y tiene una duración de 1 día
-        const  token =jwt.sign({id:user._id},process.env.SECRET,{
-        expiresIn:"1d"
-        })
+      .then((user)=>{
 
-        res.cookie("token",token,{
-          expires:   new Date(Date.now + 86400000),
-          secure:    false,
-          httpOnly : true,
-        }).json({user:newUser, code:200})
-      }
-      else{
-        return res.status(401).json({msg:"Contraseña incorrecta"})
-      }
-    })
-  }).catch((error)=>{
-    res.status(400).json({msg:"Hubo un error"},error)
-  })
+          if(user === null ) return res.status(404).json({msg:"Epal Epale no existe este correo"})
+          
+          bcrypt.compare(password, user.password).then((match)=>{
+
+            if(match){
+              //borramos password para el usuario de esta forma 
+              //primera forma
+                //  const withoutPass = user.toObject();
+                //  delete withoutPass.password
+
+                //con un utils
+                const newUser =  clearRes(user.toObject())
+                //esto nos genera un toke mezclando un valor (id) mas la palabra secreta y tiene una duracion de un dia!!!
+                const  token = jwt.sign({id: user._id}, process.env.SECRET, {
+                  expiresIn:"1d"
+                })
+
+                res.cookie("token", token, {
+                  expires:new Date(Date.now + 86400000),
+                  secure:false,
+                  httpOnly:true,
+                }).json({user:newUser,code:200})
+            }else{
+              return res.status(401).json({msg:"Epal Epale no existe no es tu contraseña"})
+            }
+
+          })
+
+      }).catch((error)=>{
+        res.status(400).json({msg:"hubo un error",error});
+      })
 });
 
 router.post("/logout",(req,res)=>{
-  res.clearCookie("token").json({msg:"Vuelve pronto"})
+  res.clearCookie("token").json({msg:"vuelve pronto"})
 })
+
+
+
 
 module.exports = router;
